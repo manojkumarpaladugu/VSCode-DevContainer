@@ -1,0 +1,8 @@
+Host {remote_host}
+    User {git_user}
+    Port 22
+    Hostname {remote_host}
+    IdentityFile {key_path}
+    Compression yes
+    ForwardAgent yes
+    AddKeysToAgent yes
