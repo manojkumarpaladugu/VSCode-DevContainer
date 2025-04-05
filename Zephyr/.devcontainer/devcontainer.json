@@ -1,0 +1,31 @@
+{
+    "name": "Ubuntu",
+    "runArgs": [
+        "--name", "ubuntu-zephyr",
+        "-v", "//./pipe/ssh-auth-sock:/ssh-agent",
+        "-e", "SSH_AUTH_SOCK=/ssh-agent"
+        "-v", "${localWorkspaceFolder}/.devcontainer:/workspaces/.devcontainer"
+    ],
+    "build": {
+        "dockerfile": "Dockerfile"
+    },
+    "workspaceMount": "source=C:\\Workspaces,target=/workspaces,type=bind",
+    "workspaceFolder": "/workspaces",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "mhutchie.git-graph",
+                "eamodio.gitlens",
+                "twxs.cmake",
+                "ms-vscode.cmake-tools",
+                "ms-vscode.cpptools",
+                "ms-vscode.cpptools-extension-pack",
+                "ms-vscode.cpptools-themes",
+                "ms-azuretools.vscode-docker"
+            ]
+        }
+    },
+
+    "postCreateCommand": "bash /workspaces/.devcontainer/post_create_command.sh",
+    "postStartCommand": "bash /workspaces/.devcontainer/post_start_command.sh"
+}
