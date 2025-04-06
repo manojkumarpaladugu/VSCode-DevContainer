@@ -4,7 +4,7 @@
         "--name", "ubuntu-zephyr",
         "-v", "//./pipe/ssh-auth-sock:/ssh-agent",
         "-e", "SSH_AUTH_SOCK=/ssh-agent"
-        "-v", "${localWorkspaceFolder}/.devcontainer:/workspaces/.devcontainer"
+        "-v", "${localWorkspaceFolder}/.devcontainer:/.devcontainer"
     ],
     "build": {
         "dockerfile": "Dockerfile"
@@ -26,6 +26,6 @@
         }
     },
 
-    "postCreateCommand": "bash /workspaces/.devcontainer/post_create_command.sh",
-    "postStartCommand": "bash /workspaces/.devcontainer/post_start_command.sh"
+    "postCreateCommand": "bash /.devcontainer/post_create_command.sh",
+    "postStartCommand": "bash /.devcontainer/post_start_command.sh"
 }
