@@ -9,7 +9,7 @@
     "build": {
         "dockerfile": "Dockerfile"
     },
-    "workspaceMount": "source=C:\\Workspaces,target=/workspaces,type=bind",
+    "workspaceMount": "source=/workspaces,target=/workspaces,type=bind",
     "workspaceFolder": "/workspaces",
     "customizations": {
         "vscode": {

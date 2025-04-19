@@ -1,10 +1,12 @@
 # Prepare Host Machine
 
-## Install Docker Engine
+## Setup Docker Engine
 
 Step 1: https://docs.docker.com/engine/install/
 
 Step 2: https://docs.docker.com/engine/install/linux-postinstall/
+
+Step 3: https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers
 
 ## Generate SSH key and add it to the GitHub account
 
