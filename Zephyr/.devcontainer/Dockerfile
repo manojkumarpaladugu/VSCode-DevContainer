@@ -2,8 +2,7 @@ FROM ubuntu:24.04
 
 # Build time arguments
 ARG DEBIAN_FRONTEND=noninteractive
-ARG IMAGE_USER="genius"
-ARG WORKSPACE="/workspaces"
+ARG IMAGE_USER="dev"
 ARG ZEPHYR_SDK_VERSION="0.17.0"
 ARG USER_INSTALL_DIR="/opt"
 ARG GID=1000
@@ -11,11 +10,14 @@ ARG UID=1000
 
 SHELL ["/bin/bash", "-euo", "pipefail", "-c"]
 
+# -----------------------------------------------------------------------------
+# Install system dependencies
+# -----------------------------------------------------------------------------
 # Update the system
 RUN apt-get update     && \
     apt-get upgrade -y
 
-# Install common packages through package manager
+# This RUN command installs all required packages for Zephyr development.
 RUN apt-get install -y \
     sudo               \
     vim                \
@@ -24,9 +26,13 @@ RUN apt-get install -y \
     python3            \
     python3-venv       \
     python3-pip        \
-    qemu-system-arm    \
-    ninja-build
+    ninja-build        \
+    qemu-system-arm && \
+    rm -rf /var/lib/apt/lists/*
 
+# -----------------------------------------------------------------------------
+# Create user and group
+# -----------------------------------------------------------------------------
 # Delete default username (ubuntu) with UID 1000 and create new user
 RUN userdel -r ubuntu                                                                  && \
     # Create new user with UID and GID that matches to the real host (1000:1000)
@@ -42,15 +48,24 @@ RUN ln -s /usr/bin/python3 /usr/bin/python                                  && \
 # Set the default user
 USER ${IMAGE_USER}
 
-# Setup python virtual environment
+# -----------------------------------------------------------------------------
+# Setup python environment
+# -----------------------------------------------------------------------------
+# Install python virtual environment
 ARG VENV_DIR="${USER_INSTALL_DIR}/venv"
 RUN python -m venv ${VENV_DIR}
 ENV PATH="${VENV_DIR}/bin:$PATH"
 
-# Install common packages through pip
-RUN pip install cmake west pre-commit pyelftools
+# Install python packages
+RUN pip install \
+    cmake       \
+    west        \
+    pre-commit  \
+    pyelftools
 
-# Download and Install Zephyr SDK
+# -----------------------------------------------------------------------------
+# Download and install the Zephyr SDK
+# -----------------------------------------------------------------------------
 WORKDIR ${USER_INSTALL_DIR}
 ARG ZEPHYR_SDK="zephyr-sdk-${ZEPHYR_SDK_VERSION}"
 ARG ZEPHYR_SDK_INSTALL_DIR="${USER_INSTALL_DIR}/${ZEPHYR_SDK}"
@@ -62,5 +77,12 @@ RUN wget "https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v${ZEPH
     ${ZEPHYR_SDK_INSTALL_DIR}/setup.sh -t arm-zephyr-eabi                                                                                          && \
     ${ZEPHYR_SDK_INSTALL_DIR}/setup.sh -c
 
-# Set default working directory
-WORKDIR ${WORKSPACE}
+# -----------------------------------------------------------------------------
+# Set up working directory and default command
+# -----------------------------------------------------------------------------
+# WORKDIR: Sets the default working directory for subsequent instructions and when the container starts.
+WORKDIR /workspaces
+
+# CMD: Specifies the default command to execute when the container starts.
+#      'bash' will drop you into a shell prompt, ready for development.
+CMD ["bash"]    
