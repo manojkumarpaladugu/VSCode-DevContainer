@@ -1,7 +1,0 @@
-{
-    "SUPPORTED_EDITORS": ["code", "cursor"],
-    "DEFAULT_HOST": "Fusion",
-    "DEFAULT_DEV_CONTAINER": "/opt/workspace/dev-containers/zephyr",
-    "DEFAULT_WORKSPACE": "/opt/workspace",
-    "DEFAULT_EDITOR": "code"
-}
