@@ -105,7 +105,7 @@ if "%VALID_EDITOR%"=="0" (
 goto :main
 
 REM ===========================================================================
-REM Functions
+REM Helper Functions
 REM ===========================================================================
 
 :log_info
@@ -126,15 +126,12 @@ exit /b 0
 
 :hex_encode
 REM Hex encode a path for vscode-remote URI
-REM Input: %1 - path to encode
-REM Output: HEX_PATH variable
 set "INPUT_PATH=%~1"
 for /f "usebackq delims=" %%i in (`powershell -NoProfile -Command "$bytes = [System.Text.Encoding]::UTF8.GetBytes('%INPUT_PATH%'); -join ($bytes | ForEach-Object { $_.ToString('x2') })"`) do set "HEX_PATH=%%i"
 exit /b 0
 
 :run_command
 REM Execute a command with dry-run and verbose support
-REM Input: COMMAND_TO_RUN variable should be set
 if "%DRY_RUN%"=="1" (
     call :log_info "[Dry-Run] Would execute: !COMMAND_TO_RUN!"
     exit /b 0
@@ -195,14 +192,13 @@ pause
 exit /b 1
 
 REM ===========================================================================
-REM Main Logic
+REM Main
 REM ===========================================================================
 
 :main
 
 set "URI="
 
-REM Handle different modes
 if /i "%MODE%"=="remote-host" goto :mode_remote_host
 if /i "%MODE%"=="remote-container" goto :mode_remote_container
 if /i "%MODE%"=="local-container" goto :mode_local_container
