@@ -20,8 +20,13 @@
                 "eamodio.gitlens",
                 "ms-vscode.cpptools",
                 "ms-vscode.cpptools-extension-pack",
-                "ms-vscode.cpptools-themes"
-            ]
+                "ms-vscode.cpptools-themes",
+                "mechatroner.rainbow-csv"
+            ],
+            "settings": {
+                "cmake.configureOnOpen": false,
+                "cmake.configureOnEdit": false
+            }
         }
     },
     "containerEnv": {
