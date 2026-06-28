@@ -9,10 +9,15 @@
         "source=${localEnv:HOME}/.gitconfig,target=/opt/.host/.gitconfig,type=bind,readonly"
     ],
     "build": {
-        "dockerfile": "Dockerfile"
+        "dockerfile": "Dockerfile",
+        "args": {
+            "IMAGE_USER": "dev",
+            "TIMEZONE": "Asia/Kolkata"
+        }
     },
     "workspaceMount": "source=${localEnv:HOME}/workspace,target=/opt/workspace,type=bind",
     "workspaceFolder": "/opt/workspace",
+    "remoteUser": "dev",
     "customizations": {
         "vscode": {
             "extensions": [
