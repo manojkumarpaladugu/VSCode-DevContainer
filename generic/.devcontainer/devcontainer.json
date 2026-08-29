@@ -1,23 +1,12 @@
 {
     "name": "Generic-Ubuntu",
-    "runArgs": [
-        "--name", "generic-ubuntu"
-    ],
-    "mounts" : [
-        "source=${localWorkspaceFolder}/.devcontainer,target=/opt/.host/.devcontainer,type=bind,readonly",
-        "source=${localEnv:HOME}/.ssh,target=/opt/.host/.ssh,type=bind,readonly",
-        "source=${localEnv:HOME}/.gitconfig,target=/opt/.host/.gitconfig,type=bind,readonly"
-    ],
-    "build": {
-        "dockerfile": "Dockerfile",
-        "args": {
-            "IMAGE_USER": "dev",
-            "TIMEZONE": "Asia/Kolkata"
-        }
-    },
-    "workspaceMount": "source=${localEnv:HOME}/workspace,target=/opt/workspace,type=bind",
+    "dockerComposeFile": "../docker-compose.yml",
+    "service": "generic-ubuntu",
     "workspaceFolder": "/opt/workspace",
-    "remoteUser": "dev",
+    "remoteUser": "ubuntu",
+    "updateRemoteUserUID": false,
+    "overrideCommand": false,
+    "shutdownAction": "none",
     "customizations": {
         "vscode": {
             "extensions": [
@@ -34,10 +23,8 @@
             }
         }
     },
-    "containerEnv": {
+    "remoteEnv": {
         "DISPLAY": null,
         "WAYLAND_DISPLAY": null
-    },
-    "onCreateCommand": "bash /opt/.host/.devcontainer/on_create_command.sh",
-    "postStartCommand": "bash /opt/.host/.devcontainer/post_start_command.sh"
+    }
 }

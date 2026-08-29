@@ -1,65 +1,52 @@
 FROM ubuntu:26.04
 
-# Build time arguments
 ARG DEBIAN_FRONTEND=noninteractive
-ARG IMAGE_USER
-ARG HOME_DIR="/home/${IMAGE_USER}"
-ARG TIMEZONE
-ARG WORKSPACE_DIR="/opt/workspace"
-ARG GID=1000
-ARG UID=1000
-ARG VENV_DIR="${HOME_DIR}/.venv"
 
 SHELL ["/bin/bash", "-euo", "pipefail", "-c"]
 
-# Switch to temporary directory
-WORKDIR "/tmp"
+# This image intentionally relies on Ubuntu's built-in, fixed 1000:1000 account.
+RUN id ubuntu >/dev/null 2>&1 \
+    || { echo "The ubuntu:26.04 image does not contain the expected 'ubuntu' account." >&2; exit 1; }; \
+    [ "$(id -u ubuntu)" = "1000" ] && [ "$(id -g ubuntu)" = "1000" ] \
+    || { echo "The 'ubuntu' account must use UID and GID 1000." >&2; exit 1; }
 
-# Update system and install required packages
-RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends \
-    sudo \
-    tzdata \
-    python3 \
-    python3-venv \
-    python3-pip \
-    wget \
-    vim \
-    git \
-    zip \
-    unzip \
-    openssh-client \
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        ca-certificates \
+        curl \
+        git \
+        gzip \
+        libstdc++6 \
+        openssh-client \
+        pipx \
+        python-is-python3 \
+        python3 \
+        python3-pip \
+        python3-venv \
+        sudo \
+        tar \
+        tzdata \
+        unzip \
+        vim \
+        wget \
+        zip \
+    && echo "ubuntu ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/ubuntu \
+    && chmod 0440 /etc/sudoers.d/ubuntu \
+    && install -d -o ubuntu -g ubuntu /opt/workspace \
     && rm -rf /var/lib/apt/lists/*
 
-# Set timezone
-RUN if [ -n "${TIMEZONE}" ]; then \
-        ln -snf /usr/share/zoneinfo/${TIMEZONE} /etc/localtime && \
-        echo ${TIMEZONE} > /etc/timezone && \
-        dpkg-reconfigure -f noninteractive tzdata; \
-    fi
-ENV TZ=${TIMEZONE}
+USER ubuntu
+ENV HOME="/home/ubuntu" \
+    LANG="C.UTF-8" \
+    PATH="/home/ubuntu/.local/bin:${PATH}"
+WORKDIR /home/ubuntu
 
-# Safely remove default ubuntu user (UID 1000) if it exists, and create our dev user
-RUN if id -u ubuntu &>/dev/null; then userdel -r ubuntu; fi && \
-    groupadd -g ${GID} ${IMAGE_USER} && \
-    useradd -m -u ${UID} -g ${GID} -d ${HOME_DIR} -s /bin/bash ${IMAGE_USER} && \
-    echo "${IMAGE_USER} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+# pipx gives each command an isolated environment while exposing its executable
+# through ~/.local/bin.
+RUN pipx install cmake \
+    && pipx install pre-commit \
+    && rm -rf /home/ubuntu/.cache
 
-# Setup python virtual environment and set ownership
-RUN ln -s /usr/bin/python3 /usr/bin/python && \
-    python -m venv ${VENV_DIR} && \
-    chown -R ${IMAGE_USER}:${IMAGE_USER} ${VENV_DIR}
+WORKDIR /opt/workspace
 
-# Add virtual environment to PATH
-ENV PATH="${VENV_DIR}/bin:$PATH"
-
-# Switch to the non-root user for pip installation and subsequent shell usage
-USER ${IMAGE_USER}
-WORKDIR ${WORKSPACE_DIR}
-
-# Install python packages inside the venv as the non-root user to preserve file ownership
-RUN pip install --no-cache-dir \
-    cmake \
-    pre-commit
-
-# 'bash' will drop you into a shell prompt, ready for development.
 CMD ["bash"]

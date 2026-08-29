@@ -1,0 +1,26 @@
+services:
+  generic-ubuntu:
+    build:
+      context: .
+      dockerfile: .devcontainer/Dockerfile
+    image: generic-ubuntu
+    hostname: generic
+    init: true
+    restart: unless-stopped
+    working_dir: /opt/workspace
+    volumes:
+      - type: bind
+        source: ${HOME}/workspace
+        target: /opt/workspace
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${HOST_GIT_CONFIG:-${HOME}/.gitconfig}
+        target: /home/ubuntu/.gitconfig-host
+        read_only: true
+        bind:
+          create_host_path: false
+    environment:
+      TZ: Asia/Kolkata
+      GIT_CONFIG_SYSTEM: /home/ubuntu/.gitconfig-host
+    command: ["sleep", "infinity"]
