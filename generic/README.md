@@ -27,22 +27,25 @@ Desktop normally translates bind-mount permissions.
 Open this directory as a Dev Container, or run from this directory:
 
 ```bash
-../docker_manage.sh start
-../docker_manage.sh shell generic-ubuntu
-../docker_manage.sh remove
+python ../docker_manage.py start
+python ../docker_manage.py shell generic-ubuntu
+python ../docker_manage.py remove
 ```
+
+The same commands work in native Windows PowerShell or Command Prompt. Python
+3.9 or newer is required.
 
 Recreate the service after changing its Dockerfile, mounts, or environment:
 
 ```bash
-../docker_manage.sh rebuild generic-ubuntu
+python ../docker_manage.py rebuild generic-ubuntu
 ```
 
-For a disposable shell, run `../docker_manage.sh run generic-ubuntu bash`.
-The wrapper forwards an active Ubuntu or macOS host SSH agent for standalone
-sessions. Editor-attached sessions retain the editor's forwarding behavior, and
-neither workflow mounts private keys. See the root README for setup and security
-details.
+For a disposable shell, run `python ../docker_manage.py run generic-ubuntu bash`.
+The CLI forwards an active Linux or macOS host SSH agent for standalone
+sessions. Native Windows sessions continue without automatic agent forwarding.
+Editor-attached sessions retain the editor's forwarding behavior, and neither
+workflow mounts private keys. See the root README for setup and security details.
 
 ## Included tools
 

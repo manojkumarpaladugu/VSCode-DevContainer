@@ -30,45 +30,62 @@ python RemoteVSCode/prepare_remote_setup.py --git_user username --remote_user us
 - [Zephyr development environment](zephyr/README.md)
 
 Each project README documents its Docker Compose and Dev Container workflow.
-Command-line Compose operations are exposed through `docker_manage.sh`.
+Command-line Compose operations are exposed through the cross-platform
+`docker_manage.py` CLI. Python 3.9 or newer and Docker Compose v2 are required.
 
 ## Docker management CLI
 
-`docker_manage.sh` provides a small action-first interface for Compose projects:
+`docker_manage.py` provides a small action-first interface for Compose projects:
 
 ```text
-./docker_manage.sh [GLOBAL_OPTIONS] [COMPOSE_OPTIONS] ACTION [ARGS...]
+python docker_manage.py [GLOBAL_OPTIONS] [COMPOSE_OPTIONS] ACTION [ARGS...]
 ```
+
+Invoke the Python script directly on Linux, macOS, or native Windows.
 
 Run commands from a project directory so the Compose file is discovered
 automatically:
 
 ```bash
 cd generic
-../docker_manage.sh start
-../docker_manage.sh shell generic-ubuntu
-../docker_manage.sh status
-../docker_manage.sh remove
+python ../docker_manage.py start
+python ../docker_manage.py shell generic-ubuntu
+python ../docker_manage.py status
+python ../docker_manage.py remove
 ```
 
 Alternatively, select a Compose file explicitly from the repository root:
 
 ```bash
-./docker_manage.sh -f zephyr/docker-compose.yml start
-./docker_manage.sh -f zephyr/docker-compose.yml shell zephyr-ubuntu
+python docker_manage.py -f zephyr/docker-compose.yml start
+python docker_manage.py -f zephyr/docker-compose.yml shell zephyr-ubuntu
 ```
+
+From native Windows PowerShell or Command Prompt, use the same Python CLI:
+
+```powershell
+cd generic
+python ..\docker_manage.py start
+python ..\docker_manage.py shell generic-ubuntu
+python ..\docker_manage.py status
+python ..\docker_manage.py remove
+```
+
+If the Windows installation provides the Python launcher instead of the
+`python` command, use `py -3` in its place.
 
 `start` builds, creates, and starts services. `rebuild` also force-recreates
 their containers, while `run` builds a disposable service container and removes
 it when the command exits. `remove` stops containers before removing them and
-preserves images and volumes. Run `./docker_manage.sh --help` for the complete
-action list.
+preserves images and volumes. Run `python docker_manage.py --help` for the
+complete action list.
 
 ### SSH agent forwarding
 
-Standalone containers started through `docker_manage.sh` automatically forward
-an available host SSH agent. This allows Git to authenticate with SSH without
-copying or mounting private keys into the container.
+On Linux and macOS, standalone containers started through the management CLI
+automatically forward an available host SSH agent. This allows Git to
+authenticate with SSH without copying or mounting private keys into the
+container.
 
 Load the required key on the host and verify that the agent can see it:
 
@@ -77,24 +94,30 @@ ssh-add ~/.ssh/id_ed25519
 ssh-add -l
 ```
 
-On Ubuntu, the wrapper mounts the Unix socket from `SSH_AUTH_SOCK`. On macOS it
+On Linux, the CLI mounts the Unix socket from `SSH_AUTH_SOCK`. On macOS it
 uses Docker Desktop's
 [`/run/host-services/ssh-auth.sock`](https://docs.docker.com/desktop/features/networking/networking-how-tos/#ssh-agent-forwarding)
 bridge. For another Unix-socket layout, set an explicit source before starting
-or recreating the service. The wrapper derives the socket's numeric group ID
+or recreating the service. The CLI derives the socket's numeric group ID
 when it can inspect the source locally; provide both overrides for a socket path
 that is resolved only by the Docker daemon:
 
 ```bash
-DOCKER_SSH_AUTH_SOCK=/absolute/path/to/agent.sock ../docker_manage.sh start
-DOCKER_SSH_AUTH_SOCK=/daemon/path/agent.sock DOCKER_SSH_AUTH_GID=1234 ../docker_manage.sh start
+DOCKER_SSH_AUTH_SOCK=/absolute/path/to/agent.sock python ../docker_manage.py start
+DOCKER_SSH_AUTH_SOCK=/daemon/path/agent.sock DOCKER_SSH_AUTH_GID=1234 python ../docker_manage.py start
 ```
 
-Windows hosts are not supported by this Bash-based workflow. If no usable agent
-is detected automatically, container-creating actions warn and continue without
-forwarding. An invalid explicit socket or group override fails before Docker is
-contacted. After starting a project, verify the forwarded agent and clone from
-the container shell:
+Docker does not provide a documented automatic host-agent socket bridge for
+native Windows. The CLI therefore warns and continues without agent forwarding
+for `start`, `rebuild`, `shell`, and `run`; all other management functionality
+works normally. If a separately configured bridge exposes a socket path that is
+visible to the Docker daemon, set both `DOCKER_SSH_AUTH_SOCK` and the numeric
+`DOCKER_SSH_AUTH_GID` before running `python docker_manage.py`. Invalid explicit
+overrides fail before Docker is contacted.
+
+On any platform, if no usable agent is detected automatically,
+container-creating actions warn and continue without forwarding. After starting
+a project, verify the forwarded agent and clone from the container shell:
 
 ```bash
 ssh-add -l
@@ -111,8 +134,8 @@ environments, place global `--force` before any Compose options and the action.
 Use `--dry-run` to inspect the commands without contacting Docker.
 
 ```bash
-./docker_manage.sh --dry-run -f generic/docker-compose.yml rebuild generic-ubuntu
-./docker_manage.sh --force cleanup
+python docker_manage.py --dry-run -f generic/docker-compose.yml rebuild generic-ubuntu
+python docker_manage.py --force cleanup
 ```
 
 `cleanup` permanently removes stopped containers plus every image, network,
