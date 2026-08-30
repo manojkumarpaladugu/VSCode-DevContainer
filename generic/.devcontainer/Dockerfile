@@ -18,7 +18,6 @@ RUN apt-get update \
         gzip \
         libstdc++6 \
         openssh-client \
-        pipx \
         python-is-python3 \
         python3 \
         python3-pip \
@@ -32,19 +31,21 @@ RUN apt-get update \
         zip \
     && echo "ubuntu ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/ubuntu \
     && chmod 0440 /etc/sudoers.d/ubuntu \
+    && install -d -o ubuntu -g ubuntu /opt/.venv \
     && install -d -o ubuntu -g ubuntu /opt/workspace \
     && rm -rf /var/lib/apt/lists/*
 
 USER ubuntu
 ENV HOME="/home/ubuntu" \
     LANG="C.UTF-8" \
-    PATH="/home/ubuntu/.local/bin:${PATH}"
+    PATH="/opt/.venv/bin:${PATH}"
 WORKDIR /home/ubuntu
 
-# pipx gives each command an isolated environment while exposing its executable
-# through ~/.local/bin.
-RUN pipx install cmake \
-    && pipx install pre-commit \
+# Keep the Python interpreter, pip, and development commands in one environment.
+RUN python3 -m venv /opt/.venv \
+    && pip install \
+        cmake \
+        pre-commit \
     && rm -rf /home/ubuntu/.cache
 
 WORKDIR /opt/workspace

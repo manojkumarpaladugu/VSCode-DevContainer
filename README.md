@@ -24,93 +24,98 @@ Use the `RemoteVSCode/prepare_remote_setup.py` script to set up passwordless SSH
 python RemoteVSCode/prepare_remote_setup.py --git_user username --remote_user username --remote_host hostname-or-ip
 ```
 
+## Development containers
+
+- [Generic Ubuntu environment](generic/README.md)
+- [Zephyr development environment](zephyr/README.md)
+
+Each project README documents its Docker Compose and Dev Container workflow.
+Command-line Compose operations are exposed through `docker_manage.sh`.
+
 ## Docker management CLI
 
-`docker_manage.sh` is a generic wrapper for common container, image, and
-Docker Compose workflows. It does not contain project-specific image names,
-ports, mounts, environment variables, or build arguments.
+`docker_manage.sh` provides a small action-first interface for Compose projects:
 
 ```text
-./docker_manage.sh [GLOBAL_OPTIONS] container ACTION [ARGS...]
-./docker_manage.sh [GLOBAL_OPTIONS] image ACTION [ARGS...]
-./docker_manage.sh [GLOBAL_OPTIONS] compose [COMPOSE_OPTIONS] ACTION [ARGS...]
+./docker_manage.sh [GLOBAL_OPTIONS] [COMPOSE_OPTIONS] ACTION [ARGS...]
 ```
 
-Run `./docker_manage.sh --help` or the help for an individual resource, such
-as `./docker_manage.sh container --help`, for the complete action list.
-
-### Containers
-
-Docker arguments are forwarded unchanged, so normal Docker flags can be used:
+Run commands from a project directory so the Compose file is discovered
+automatically:
 
 ```bash
-# List all containers and start two existing containers.
-./docker_manage.sh container list --all
-./docker_manage.sh container start api worker
-
-# Create a container from any image and follow its logs.
-./docker_manage.sh container run --name web -d -p 8080:80 nginx:alpine
-./docker_manage.sh container logs --follow --tail 100 web
-
-# Open bash when available, otherwise fall back to sh.
-./docker_manage.sh container shell web
-
-# Run a specific interactive command instead of resolving a shell.
-./docker_manage.sh container shell web python3
+cd generic
+../docker_manage.sh start
+../docker_manage.sh shell generic-ubuntu
+../docker_manage.sh status
+../docker_manage.sh remove
 ```
 
-`container shell` requires the container to already be running. It never
-starts a stopped container implicitly.
-
-### Images
+Alternatively, select a Compose file explicitly from the repository root:
 
 ```bash
-./docker_manage.sh image build -t my-app:dev -f Dockerfile .
-./docker_manage.sh image pull alpine:latest
-./docker_manage.sh image tag my-app:dev registry.example.com/my-app:dev
-./docker_manage.sh image inspect my-app:dev
+./docker_manage.sh -f zephyr/docker-compose.yml start
+./docker_manage.sh -f zephyr/docker-compose.yml shell zephyr-ubuntu
 ```
 
-No UID/GID build arguments or other build settings are injected. Supply every
-project-specific option explicitly as a normal Docker argument.
+`start` builds, creates, and starts services. `rebuild` also force-recreates
+their containers, while `run` builds a disposable service container and removes
+it when the command exits. `remove` stops containers before removing them and
+preserves images and volumes. Run `./docker_manage.sh --help` for the complete
+action list.
 
-### Docker Compose
+### SSH agent forwarding
 
-Compose mode is always explicit. Compose options that select files, profiles,
-or project identity belong between `compose` and the action:
+Standalone containers started through `docker_manage.sh` automatically forward
+an available host SSH agent. This allows Git to authenticate with SSH without
+copying or mounting private keys into the container.
+
+Load the required key on the host and verify that the agent can see it:
 
 ```bash
-./docker_manage.sh compose -f generic/docker-compose.yml -p generic-dev up -d
-./docker_manage.sh compose -f generic/docker-compose.yml -p generic-dev ps
-./docker_manage.sh compose -f generic/docker-compose.yml -p generic-dev shell generic-ubuntu
-./docker_manage.sh compose -f generic/docker-compose.yml -p generic-dev down
+ssh-add ~/.ssh/id_ed25519
+ssh-add -l
 ```
 
-When `--file` is omitted, Docker Compose performs its normal file discovery.
-`compose down` preserves volumes and images unless Docker's `--volumes` or
-`--rmi` option is explicitly supplied.
-
-### Safety and automation
-
-Container/image removal and pruning require one confirmation. In scripts, CI,
-or other non-interactive sessions, place the global `--force` option before the
-resource to skip that confirmation:
+On Ubuntu, the wrapper mounts the Unix socket from `SSH_AUTH_SOCK`. On macOS it
+uses Docker Desktop's
+[`/run/host-services/ssh-auth.sock`](https://docs.docker.com/desktop/features/networking/networking-how-tos/#ssh-agent-forwarding)
+bridge. For another Unix-socket layout, set an explicit source before starting
+or recreating the service. The wrapper derives the socket's numeric group ID
+when it can inspect the source locally; provide both overrides for a socket path
+that is resolved only by the Docker daemon:
 
 ```bash
-./docker_manage.sh --force container remove old-api old-worker
-./docker_manage.sh --force image prune --all
+DOCKER_SSH_AUTH_SOCK=/absolute/path/to/agent.sock ../docker_manage.sh start
+DOCKER_SSH_AUTH_SOCK=/daemon/path/agent.sock DOCKER_SSH_AUTH_GID=1234 ../docker_manage.sh start
 ```
 
-The global flag only skips this wrapper's prompt; it does not add Docker's
-force-removal flag to `container remove` or `image remove`. Put a native Docker
-flag after the action when its behavior is intended.
-
-Use `--dry-run` to inspect the exact command without contacting the Docker
-daemon. Diagnostic output goes to stderr, leaving Docker output pipe-friendly.
-Colors are disabled automatically when stderr is not a terminal and can also
-be disabled with `--no-color` or the `NO_COLOR` environment variable.
+Windows hosts are not supported by this Bash-based workflow. If no usable agent
+is detected automatically, container-creating actions warn and continue without
+forwarding. An invalid explicit socket or group override fails before Docker is
+contacted. After starting a project, verify the forwarded agent and clone from
+the container shell:
 
 ```bash
-./docker_manage.sh --dry-run container run --name test alpine:latest echo hello
-./docker_manage.sh --verbose image list --format '{{.Repository}}:{{.Tag}}'
+ssh-add -l
+git clone git@github.com:OWNER/REPOSITORY.git
 ```
+
+The container can ask the forwarded agent to sign authentication requests, so
+forward it only into trusted images and containers. The private keys themselves
+remain on the host. Editor-launched Dev Containers continue to use the editor's
+own automatic agent forwarding and do not load the standalone overlay.
+
+Removal and global cleanup require confirmation. In non-interactive
+environments, place global `--force` before any Compose options and the action.
+Use `--dry-run` to inspect the commands without contacting Docker.
+
+```bash
+./docker_manage.sh --dry-run -f generic/docker-compose.yml rebuild generic-ubuntu
+./docker_manage.sh --force cleanup
+```
+
+`cleanup` permanently removes stopped containers plus every image, network,
+named or anonymous volume, and build-cache entry unused by running containers.
+It is the only engine-level action; all project actions use Docker Compose
+internally.

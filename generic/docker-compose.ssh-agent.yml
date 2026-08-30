@@ -1,0 +1,10 @@
+services:
+  generic-ubuntu:
+    group_add:
+      - ${DOCKER_SSH_AUTH_GID:?SSH agent socket GID is required}
+    volumes:
+      - type: bind
+        source: ${DOCKER_SSH_AUTH_SOCK:?SSH agent socket is required}
+        target: /run/host-services/ssh-auth.sock
+    environment:
+      SSH_AUTH_SOCK: /run/host-services/ssh-auth.sock
