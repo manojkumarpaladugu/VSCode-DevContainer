@@ -74,11 +74,11 @@ python ..\docker_manage.py remove
 If the Windows installation provides the Python launcher instead of the
 `python` command, use `py -3` in its place.
 
-`start` builds, creates, and starts services. `rebuild` also force-recreates
-their containers, while `run` builds a disposable service container and removes
-it when the command exits. `remove` stops containers before removing them and
-preserves images and volumes. Run `python docker_manage.py --help` for the
-complete action list.
+`start` creates and starts services without forcing an image build. `rebuild`
+builds images and force-recreates their containers, while `run` starts a
+disposable service container and removes it when the command exits. `remove`
+stops containers before removing them and preserves images and volumes. Run
+`python docker_manage.py --help` for the complete action list.
 
 ### SSH agent forwarding
 

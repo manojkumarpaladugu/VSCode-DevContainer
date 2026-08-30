@@ -102,8 +102,47 @@ class DockerManagerTests(unittest.TestCase):
 
     def test_help_and_usage_errors_do_not_contact_docker(self) -> None:
         self.assertEqual(self.run_cli("--help"), 0)
-        self.assertIn("[COMPOSE_OPTIONS] ACTION", self.stdout.getvalue())
-        self.assertIn("cleanup", self.stdout.getvalue())
+        help_text = self.stdout.getvalue()
+        self.assertIn("[COMPOSE_OPTIONS] ACTION", help_text)
+        self.assertIn("cleanup", help_text)
+        actions_text = help_text.split("Actions:\n", 1)[1].split("\n\nExamples:", 1)[0]
+        self.assertEqual(
+            [line.strip().split()[0] for line in actions_text.splitlines()],
+            [
+                "start",
+                "status",
+                "logs",
+                "shell",
+                "exec",
+                "restart",
+                "stop",
+                "rebuild",
+                "build",
+                "run",
+                "pull",
+                "config",
+                "remove",
+                "cleanup",
+            ],
+        )
+        examples_text = help_text.split("Examples:\n", 1)[1]
+        example_lines = []
+        for line in examples_text.splitlines():
+            if not line.strip():
+                break
+            example_lines.append(line.strip())
+        self.assertEqual(
+            example_lines,
+            [
+                "python docker_manage.py start",
+                "python docker_manage.py -f environments/app/compose.yml status",
+                "python docker_manage.py shell app",
+                "python docker_manage.py rebuild app",
+                "python docker_manage.py run app bash",
+                "python docker_manage.py remove",
+                "python docker_manage.py --force cleanup",
+            ],
+        )
         self.assertEqual(self.runner.calls, [])
 
         self.stdout = io.StringIO()
@@ -122,8 +161,7 @@ class DockerManagerTests(unittest.TestCase):
             self.action_calls(),
             [[
                 "docker", "compose", "-f", "first.yml", "--file", "second.yml",
-                "--profile", "dev", "-p", "demo", "up", "-d", "--build",
-                "api", "worker",
+                "--profile", "dev", "-p", "demo", "up", "-d", "api", "worker",
             ]],
         )
 
@@ -133,6 +171,41 @@ class DockerManagerTests(unittest.TestCase):
             self.action_calls(),
             [["docker", "compose", "up", "-d", "--build", "--force-recreate", "api"]],
         )
+
+    def test_non_build_actions_do_not_inject_image_builds(self) -> None:
+        for args in (("start", "api"), ("run", "api", "true"), ("shell", "api", "true")):
+            with self.subTest(action=args[0]):
+                self.runner.calls.clear()
+                self.assertEqual(self.run_cli(*args), 0)
+                self.assertNotIn(
+                    "--build",
+                    [part for call in self.action_calls() for part in call],
+                )
+
+        self.runner.calls.clear()
+        self.assertEqual(self.run_cli("rebuild", "api"), 0)
+        self.assertIn("--build", self.action_calls()[0])
+
+        self.runner.calls.clear()
+        self.assertEqual(self.run_cli("build", "api"), 0)
+        self.assertEqual(
+            self.action_calls(),
+            [["docker", "compose", "build", "api"]],
+        )
+
+    def test_callers_can_explicitly_request_builds(self) -> None:
+        expectations = {
+            ("start", "--build", "api"): ["up", "-d", "--build", "api"],
+            ("run", "--build", "api"): ["run", "--rm", "--build", "api"],
+        }
+        for args, expected in expectations.items():
+            with self.subTest(action=args[0]):
+                self.runner.calls.clear()
+                self.assertEqual(self.run_cli(*args), 0)
+                self.assertEqual(
+                    self.action_calls(),
+                    [["docker", "compose", *expected]],
+                )
 
     def test_compose_option_forms_and_action_delimiter_are_preserved(self) -> None:
         self.assertEqual(
@@ -206,14 +279,14 @@ class DockerManagerTests(unittest.TestCase):
             self.action_calls(),
             [[
                 "docker", "compose", "--env-file", "dev.env", "run", "--rm",
-                "--build", "-e", "MODE=test", "api", "bash",
+                "-e", "MODE=test", "api", "bash",
             ]],
         )
 
     def test_shell_prefers_bash_and_falls_back_to_sh(self) -> None:
         self.assertEqual(self.run_cli("-f", "stack.yml", "shell", "api"), 0)
         calls = self.action_calls()
-        self.assertIn(["docker", "compose", "-f", "stack.yml", "up", "-d", "--build", "api"], calls)
+        self.assertIn(["docker", "compose", "-f", "stack.yml", "up", "-d", "api"], calls)
         self.assertIn(["docker", "compose", "-f", "stack.yml", "exec", "-T", "api", "bash"], calls)
 
         self.runner.calls.clear()
@@ -249,13 +322,13 @@ class DockerManagerTests(unittest.TestCase):
         self.stderr = io.StringIO()
         self.assertEqual(self.run_cli("--dry-run", "shell", "api"), 0)
         output = self.stderr.getvalue()
-        self.assertIn("+ docker compose up -d --build api", output)
+        self.assertIn("+ docker compose up -d api", output)
         self.assertIn("+ docker compose exec -T api bash", output)
         self.assertEqual(self.runner.calls, [])
 
     def test_dry_run_skips_docker_preflight(self) -> None:
         self.assertEqual(self.run_cli("--dry-run", "-f", "stack.yml", "start", "api"), 0)
-        self.assertIn("+ docker compose -f stack.yml up -d --build api", self.stderr.getvalue())
+        self.assertIn("+ docker compose -f stack.yml up -d api", self.stderr.getvalue())
         self.assertEqual(self.runner.calls, [])
 
     def test_linux_agent_forwarding_and_overlay(self) -> None:
@@ -270,7 +343,7 @@ class DockerManagerTests(unittest.TestCase):
             action,
             [
                 "docker", "compose", "-f", str(project / "compose.yaml"), "-f",
-                str(project / "docker-compose.ssh-agent.yml"), "up", "-d", "--build", "api",
+                str(project / "docker-compose.ssh-agent.yml"), "up", "-d", "api",
             ],
         )
         environment = self.runner.environments[-1]
@@ -303,7 +376,7 @@ class DockerManagerTests(unittest.TestCase):
             [
                 "docker", "compose", "-f", str(project / "compose.yaml"), "-f",
                 str(project / "compose.override.yaml"), "-f",
-                str(project / "docker-compose.ssh-agent.yml"), "up", "-d", "--build", "api",
+                str(project / "docker-compose.ssh-agent.yml"), "up", "-d", "api",
             ],
         )
 

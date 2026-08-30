@@ -218,16 +218,16 @@ Compose options (must precede the action):
       --compatibility
 
 Actions:
-  start [ARGS...]                 Build, create, and start services
-  rebuild [ARGS...]               Rebuild and force-recreate services
-  stop [ARGS...]                  Stop services without removing them
-  restart [ARGS...]               Restart services
+  start [ARGS...]                 Create and start services
   status [ARGS...]                Show all service containers
   logs [ARGS...]                  Show service logs
   shell SERVICE [COMMAND...]      Start a service and open a shell or command
   exec [OPTIONS] SERVICE COMMAND  Run a command in a running service
-  run [OPTIONS] SERVICE [COMMAND] Build and run a disposable service container
+  restart [ARGS...]               Restart services
+  stop [ARGS...]                  Stop services without removing them
+  rebuild [ARGS...]               Rebuild and force-recreate services
   build [ARGS...]                 Build services
+  run [OPTIONS] SERVICE [COMMAND] Run a disposable service container
   pull [ARGS...]                  Pull service images
   config [ARGS...]                Render or validate the Compose configuration
   remove [SERVICE...]             Stop and remove a project or selected services
@@ -235,10 +235,10 @@ Actions:
 
 Examples:
   {self.program_name} start
+  {self.program_name} -f environments/app/compose.yml status
   {self.program_name} shell app
   {self.program_name} rebuild app
   {self.program_name} run app bash
-  {self.program_name} -f environments/app/compose.yml status
   {self.program_name} remove
   {self.program_name} --force cleanup
 
@@ -573,7 +573,7 @@ DOCKER_SSH_AUTH_SOCK and DOCKER_SSH_AUTH_GID to use an explicit agent bridge."""
             return status
         service, *command = args
         no_tty = [] if self._isatty(self.stdin) and self._isatty(self.stdout) else ["-T"]
-        status = self.run_compose("up", "-d", "--build", service)
+        status = self.run_compose("up", "-d", service)
         if status:
             return status
         if self.dry_run:
@@ -650,7 +650,7 @@ DOCKER_SSH_AUTH_SOCK and DOCKER_SSH_AUTH_GID to use an explicit agent bridge."""
             if status:
                 return status
         if action == "start":
-            return self.run_compose("up", "-d", "--build", *args)
+            return self.run_compose("up", "-d", *args)
         if action == "rebuild":
             return self.run_compose("up", "-d", "--build", "--force-recreate", *args)
         if action in {"stop", "restart", "build", "pull", "config", "logs"}:
@@ -664,7 +664,7 @@ DOCKER_SSH_AUTH_SOCK and DOCKER_SSH_AUTH_GID to use an explicit agent bridge."""
             return status or self.run_compose("exec", *args)
         if action == "run":
             status = self.require_arg_count("run", 1, args)
-            return status or self.run_compose("run", "--rm", "--build", *args)
+            return status or self.run_compose("run", "--rm", *args)
         if action == "remove":
             return self.handle_remove(args)
         if action == "cleanup":
