@@ -1,0 +1,30 @@
+services:
+  tock-ubuntu:
+    build:
+      context: .
+      dockerfile: .devcontainer/Dockerfile
+    image: tock-ubuntu
+    hostname: tock
+    init: true
+    restart: unless-stopped
+    privileged: true
+    working_dir: /opt/workspace
+    volumes:
+      - type: bind
+        source: ${HOME}/workspace
+        target: /opt/workspace
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${HOST_GIT_CONFIG:-${HOME}/.gitconfig}
+        target: /home/ubuntu/.gitconfig-host
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: /dev
+        target: /dev
+    environment:
+      TZ: Asia/Kolkata
+      GIT_CONFIG_SYSTEM: /home/ubuntu/.gitconfig-host
+    command: ["sleep", "infinity"]

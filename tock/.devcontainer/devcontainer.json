@@ -1,0 +1,33 @@
+{
+    "name": "Tock-Ubuntu",
+    "dockerComposeFile": "../docker-compose.yml",
+    "service": "tock-ubuntu",
+    "workspaceFolder": "/opt/workspace",
+    "remoteUser": "ubuntu",
+    "updateRemoteUserUID": false,
+    "overrideCommand": false,
+    "shutdownAction": "none",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "mhutchie.git-graph",
+                "eamodio.gitlens",
+                "ms-vscode.cpptools",
+                "ms-vscode.cpptools-extension-pack",
+                "ms-vscode.cpptools-themes",
+                "mechatroner.rainbow-csv",
+                "rust-lang.rust-analyzer",
+                "marus25.cortex-debug"
+            ],
+            "settings": {
+                "cmake.configureOnOpen": false,
+                "cmake.configureOnEdit": false,
+                "cortex-debug.gdbPath": "/usr/bin/gdb-multiarch"
+            }
+        }
+    },
+    "remoteEnv": {
+        "DISPLAY": null,
+        "WAYLAND_DISPLAY": null
+    }
+}

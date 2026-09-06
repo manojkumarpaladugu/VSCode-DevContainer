@@ -628,6 +628,7 @@ class DockerManagerTests(unittest.TestCase):
         for devcontainer_file in (
             REPO_DIR / "generic/.devcontainer/devcontainer.json",
             REPO_DIR / "zephyr/.devcontainer/devcontainer.json",
+            REPO_DIR / "tock/.devcontainer/devcontainer.json",
         ):
             content = devcontainer_file.read_text(encoding="utf-8")
             self.assertIn('"dockerComposeFile": "../docker-compose.yml"', content)

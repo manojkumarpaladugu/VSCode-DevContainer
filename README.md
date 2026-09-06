@@ -28,6 +28,7 @@ python RemoteVSCode/prepare_remote_setup.py --git_user username --remote_user us
 
 - [Generic Ubuntu environment](generic/README.md)
 - [Zephyr development environment](zephyr/README.md)
+- [Tock RTOS development environment](tock/README.md)
 
 Each project README documents its Docker Compose and Dev Container workflow.
 Command-line Compose operations are exposed through the cross-platform
